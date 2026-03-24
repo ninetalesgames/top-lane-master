@@ -30,6 +30,11 @@ export default function ChampionSelectPage({
     );
   }, [search]);
 
+  const handleChampionClick = (champion: Champion) => {
+    onSelectChampion(champion);
+    onContinue();
+  };
+
   return (
     <div className="page-shell">
       <header className="app-header">
@@ -61,21 +66,21 @@ export default function ChampionSelectPage({
             </div>
 
             <div className="summary-card selected-champion-summary">
-  <span className="summary-label">Selected champion</span>
+              <span className="summary-label">Selected champion</span>
 
-  {selectedChampion ? (
-    <div className="selected-champion-display">
-      <img
-        src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/champion/${selectedChampion.image}.png`}
-        alt={selectedChampion.name}
-        className="selected-champion-image"
-      />
-      <strong className="summary-name">{selectedChampion.name}</strong>
-    </div>
-  ) : (
-    <strong className="summary-name">None selected</strong>
-  )}
-</div>
+              {selectedChampion ? (
+                <div className="selected-champion-display">
+                  <img
+                    src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/champion/${selectedChampion.image}.png`}
+                    alt={selectedChampion.name}
+                    className="selected-champion-image"
+                  />
+                  <strong className="summary-name">{selectedChampion.name}</strong>
+                </div>
+              ) : (
+                <strong className="summary-name">None selected</strong>
+              )}
+            </div>
           </div>
 
           <div className="search-row">
@@ -99,7 +104,7 @@ export default function ChampionSelectPage({
                   key={champion.id}
                   type="button"
                   className={`champion-card ${isSelected ? 'champion-card-selected' : ''}`}
-                  onClick={() => onSelectChampion(champion)}
+                  onClick={() => handleChampionClick(champion)}
                 >
                   <div className="champion-avatar">
                     <img
@@ -121,22 +126,6 @@ export default function ChampionSelectPage({
           )}
         </section>
       </main>
-
-      <div className="fixed-bottom-actions-wrap">
-        <div className="fixed-bottom-actions content-width">
-          <button className="secondary-button small-button" onClick={onBack}>
-            Back
-          </button>
-
-          <button
-            className="primary-button small-button"
-            onClick={onContinue}
-            disabled={!selectedChampion}
-          >
-            Continue to Opponent Select
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

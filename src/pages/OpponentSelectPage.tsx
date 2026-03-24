@@ -23,17 +23,22 @@ export default function OpponentSelectPage({
   const filteredChampions = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    if (!query) {
-      return topLaneChampions;
-    }
+    if (!query) return topLaneChampions;
 
     return topLaneChampions.filter((champion) =>
       champion.name.toLowerCase().includes(query)
     );
   }, [search]);
 
+  const handleOpponentClick = (champion: Champion) => {
+    if (selectedChampion?.id === champion.id) return;
+
+    onSelectOpponent(champion);
+    onContinue();
+  };
+
   return (
-    <div className="page-shell">
+    <div className="page-shell opponent-page"> {/* 👈 NEW CLASS */}
       <header className="app-header">
         <div className="header-left">
           <button className="logo-button" onClick={onBack}>
@@ -57,8 +62,7 @@ export default function OpponentSelectPage({
               <span className="section-label">Opponent Select</span>
               <h1 className="page-title">Who are you facing?</h1>
               <p className="page-description">
-                Choose the enemy top laner to open the matchup page and view or build your notes
-                for that specific lane.
+                Choose the enemy top laner to open the matchup page and build your notes.
               </p>
             </div>
 
@@ -119,7 +123,7 @@ export default function OpponentSelectPage({
                   key={champion.id}
                   type="button"
                   className={`champion-card ${isSelected ? 'champion-card-selected' : ''}`}
-                  onClick={() => onSelectOpponent(champion)}
+                  onClick={() => handleOpponentClick(champion)}
                   disabled={isSameAsPlayer}
                   title={isSameAsPlayer ? 'This is your selected champion' : champion.name}
                 >
@@ -148,22 +152,6 @@ export default function OpponentSelectPage({
           )}
         </section>
       </main>
-
-      <div className="fixed-bottom-actions-wrap">
-        <div className="fixed-bottom-actions content-width">
-          <button className="secondary-button small-button" onClick={onBack}>
-            Back
-          </button>
-
-          <button
-            className="primary-button small-button"
-            onClick={onContinue}
-            disabled={!selectedOpponent}
-          >
-            Open Matchup Page
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

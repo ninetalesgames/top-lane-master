@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { SelectedChampion } from '../App';
 import logo from '../assets/logo.png';
 
@@ -20,12 +20,10 @@ type QuickNoteSection = {
 
 type SavedMatchupNotes = {
   earlyGameNotes: string;
-  level6Notes: string;
-  level11Notes: string;
   lateGameNotes: string;
 };
 
-const quickNoteSections: Record<'early' | 'six' | 'eleven' | 'late', QuickNoteSection> = {
+const quickNoteSections: Record<'early' | 'late', QuickNoteSection> = {
   early: {
     title: 'Early game',
     groups: [
@@ -48,19 +46,7 @@ const quickNoteSections: Record<'early' | 'six' | 'eleven' | 'late', QuickNoteSe
         ]
       },
       {
-        title: 'Mindset',
-        notes: [
-          'Respect enemy early damage',
-          'Look for early kill window'
-        ]
-      }
-    ]
-  },
-  six: {
-    title: 'Level 6',
-    groups: [
-      {
-        title: 'Power spike',
+        title: 'Level 6 spike',
         notes: [
           'Enemy stronger at level 6',
           'I am stronger at level 6',
@@ -69,49 +55,10 @@ const quickNoteSections: Record<'early' | 'six' | 'eleven' | 'late', QuickNoteSe
         ]
       },
       {
-        title: 'Execution',
+        title: 'Mindset',
         notes: [
-          'Poke before committing',
-          'Bait enemy ult first',
-          'Track cooldowns carefully'
-        ]
-      },
-      {
-        title: 'Wave and jungle',
-        notes: [
-          'Freeze wave and threaten kill',
-          'Play safe until ult advantage',
-          'Call jungle for dive'
-        ]
-      }
-    ]
-  },
-  eleven: {
-    title: 'Level 11',
-    groups: [
-      {
-        title: 'Spike',
-        notes: [
-          'Enemy spikes harder at 11',
-          'I spike harder at 11',
-          'Avoid 1v1 after 11'
-        ]
-      },
-      {
-        title: 'Map plan',
-        notes: [
-          'Look for side lane pressure',
-          'Group for fights',
-          'Split push only',
-          'Push then rotate'
-        ]
-      },
-      {
-        title: 'Discipline',
-        notes: [
-          'Do not overextend',
-          'Play around item spikes',
-          'Control side waves'
+          'Respect enemy early damage',
+          'Look for early kill window'
         ]
       }
     ]
@@ -119,6 +66,15 @@ const quickNoteSections: Record<'early' | 'six' | 'eleven' | 'late', QuickNoteSe
   late: {
     title: 'Late game',
     groups: [
+      {
+        title: 'Level 11 spike',
+        notes: [
+          'Enemy spikes harder at 11',
+          'I spike harder at 11',
+          'Avoid 1v1 after 11',
+          'Play around item spikes'
+        ]
+      },
       {
         title: 'Teamfighting',
         notes: [
@@ -149,17 +105,13 @@ const quickNoteSections: Record<'early' | 'six' | 'eleven' | 'late', QuickNoteSe
 };
 
 const placeholderTexts = [
-  'Here you write how you felt in the early game. Delete these notes and add your own. E.g. I lose level 1 all in, take short trades only.',
-  'Here you write how the matchup changes at level 6. Delete these notes and add your own. E.g. if they hit 6 first I must back off, only fight after poking them down first.',
-  'Here you write how the matchup feels at level 11. Delete these notes and add your own. E.g. their second ultimate spike is dangerous, I need side lane control before fighting.',
-  'Here you write how the matchup feels later on. Delete these notes and add your own. E.g. I stop looking for isolated fights and focus on teamfights, flank angles, and front to back execution.'
+  'Here you write how the matchup feels in the early game. Delete these notes and add your own. E.g. I lose level 1 all in, take short trades only, respect their level 6 spike.',
+  'Here you write how the matchup feels later on. Delete these notes and add your own. E.g. after level 11 I avoid isolated fights, focus on teamfights, side lane control, and objectives.'
 ];
 
 const defaultNotes: SavedMatchupNotes = {
   earlyGameNotes: placeholderTexts[0],
-  level6Notes: placeholderTexts[1],
-  level11Notes: placeholderTexts[2],
-  lateGameNotes: placeholderTexts[3]
+  lateGameNotes: placeholderTexts[1]
 };
 
 const normalizeLines = (value: string) => {
@@ -208,19 +160,22 @@ export default function MatchupPage({
   const [mode, setMode] = useState<'review' | 'update'>('review');
 
   const [earlyGameNotes, setEarlyGameNotes] = useState(defaultNotes.earlyGameNotes);
-  const [level6Notes, setLevel6Notes] = useState(defaultNotes.level6Notes);
-  const [level11Notes, setLevel11Notes] = useState(defaultNotes.level11Notes);
   const [lateGameNotes, setLateGameNotes] = useState(defaultNotes.lateGameNotes);
 
   const [savedField, setSavedField] = useState<keyof SavedMatchupNotes | 'all' | null>(null);
+
+  const saveTimeoutRef = useRef<number | null>(null);
+  const hasLoadedInitialData = useRef(false);
 
   const matchupTitle =
     selectedChampion && selectedOpponent
       ? `${selectedChampion.name} vs ${selectedOpponent.name}`
       : 'Matchup Notes';
 
-  const championKey = selectedChampion?.name?.toLowerCase().replace(/\s+/g, '_') || 'unknown_champion';
-  const opponentKey = selectedOpponent?.name?.toLowerCase().replace(/\s+/g, '_') || 'unknown_opponent';
+  const championKey =
+    selectedChampion?.name?.toLowerCase().replace(/\s+/g, '_') || 'unknown_champion';
+  const opponentKey =
+    selectedOpponent?.name?.toLowerCase().replace(/\s+/g, '_') || 'unknown_opponent';
   const matchupStorageKey = `matchup_notes_${championKey}_${opponentKey}`;
 
   useEffect(() => {
@@ -229,40 +184,54 @@ export default function MatchupPage({
 
       if (!savedData) {
         setEarlyGameNotes(defaultNotes.earlyGameNotes);
-        setLevel6Notes(defaultNotes.level6Notes);
-        setLevel11Notes(defaultNotes.level11Notes);
         setLateGameNotes(defaultNotes.lateGameNotes);
+        hasLoadedInitialData.current = true;
         return;
       }
 
-      const parsed: Partial<SavedMatchupNotes> = JSON.parse(savedData);
+      const parsed = JSON.parse(savedData) as Partial<{
+        earlyGameNotes: string;
+        level6Notes: string;
+        level11Notes: string;
+        lateGameNotes: string;
+      }>;
 
-      setEarlyGameNotes(parsed.earlyGameNotes || defaultNotes.earlyGameNotes);
-      setLevel6Notes(parsed.level6Notes || defaultNotes.level6Notes);
-      setLevel11Notes(parsed.level11Notes || defaultNotes.level11Notes);
-      setLateGameNotes(parsed.lateGameNotes || defaultNotes.lateGameNotes);
+      const mergedEarlyNotes = [parsed.earlyGameNotes, parsed.level6Notes]
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+
+      const mergedLateNotes = [parsed.level11Notes, parsed.lateGameNotes]
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+
+      setEarlyGameNotes(mergedEarlyNotes || defaultNotes.earlyGameNotes);
+      setLateGameNotes(mergedLateNotes || defaultNotes.lateGameNotes);
+      hasLoadedInitialData.current = true;
     } catch (error) {
       console.error('Failed to load matchup notes from localStorage:', error);
       setEarlyGameNotes(defaultNotes.earlyGameNotes);
-      setLevel6Notes(defaultNotes.level6Notes);
-      setLevel11Notes(defaultNotes.level11Notes);
       setLateGameNotes(defaultNotes.lateGameNotes);
+      hasLoadedInitialData.current = true;
     }
   }, [matchupStorageKey]);
 
   const showSaved = (field: keyof SavedMatchupNotes | 'all') => {
     setSavedField(field);
+
     window.setTimeout(() => {
       setSavedField((current) => (current === field ? null : current));
-    }, 1500);
+    }, 1800);
   };
 
-  const saveMatchupNotes = (updatedNotes?: Partial<SavedMatchupNotes>, field?: keyof SavedMatchupNotes | 'all') => {
+  const saveMatchupNotes = (
+    updatedNotes?: Partial<SavedMatchupNotes>,
+    field?: keyof SavedMatchupNotes | 'all'
+  ) => {
     try {
       const dataToSave: SavedMatchupNotes = {
         earlyGameNotes,
-        level6Notes,
-        level11Notes,
         lateGameNotes,
         ...updatedNotes
       };
@@ -274,11 +243,30 @@ export default function MatchupPage({
     }
   };
 
+  useEffect(() => {
+    if (!hasLoadedInitialData.current) {
+      return;
+    }
+
+    if (saveTimeoutRef.current) {
+      window.clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = window.setTimeout(() => {
+      saveMatchupNotes(undefined, 'all');
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [earlyGameNotes, lateGameNotes]);
+
   const handleToggleNote = (
     currentValue: string,
-    setValue: React.Dispatch<React.SetStateAction<string>>,
-    noteToToggle: string,
-    field: keyof SavedMatchupNotes
+    setValue: Dispatch<SetStateAction<string>>,
+    noteToToggle: string
   ) => {
     const lines = normalizeLines(currentValue);
     const lowerLines = lines.map((line) => line.toLowerCase());
@@ -289,9 +277,7 @@ export default function MatchupPage({
       : [...lines, noteToToggle];
 
     const updatedValue = updatedLines.join('\n');
-
     setValue(updatedValue);
-    saveMatchupNotes({ [field]: updatedValue }, field);
   };
 
   const topLaneRules = [
@@ -314,13 +300,11 @@ export default function MatchupPage({
   const QuickNoteButtons = ({
     section,
     currentValue,
-    setValue,
-    field
+    setValue
   }: {
     section: QuickNoteSection;
     currentValue: string;
-    setValue: React.Dispatch<React.SetStateAction<string>>;
-    field: keyof SavedMatchupNotes;
+    setValue: Dispatch<SetStateAction<string>>;
   }) => {
     return (
       <div className="quick-note-groups">
@@ -337,7 +321,7 @@ export default function MatchupPage({
                     key={note}
                     type="button"
                     className={`quick-note-button ${selected ? 'quick-note-button-selected' : ''}`}
-                    onClick={() => handleToggleNote(currentValue, setValue, note, field)}
+                    onClick={() => handleToggleNote(currentValue, setValue, note)}
                   >
                     {note}
                   </button>
@@ -355,7 +339,7 @@ export default function MatchupPage({
       return null;
     }
 
-    return <p className="saved-message">Saved!</p>;
+    return <p className="saved-message">Saved for next time.</p>;
   };
 
   const renderTopLaneRulesCard = () => (
@@ -389,16 +373,6 @@ export default function MatchupPage({
       </article>
 
       <article className="panel-card note-block">
-        <h3>Level 6</h3>
-        {renderNoteList(level6Notes)}
-      </article>
-
-      <article className="panel-card note-block">
-        <h3>Level 11</h3>
-        {renderNoteList(level11Notes)}
-      </article>
-
-      <article className="panel-card note-block">
         <h3>Late game</h3>
         {renderNoteList(lateGameNotes)}
       </article>
@@ -415,7 +389,6 @@ export default function MatchupPage({
           section={quickNoteSections.early}
           currentValue={earlyGameNotes}
           setValue={setEarlyGameNotes}
-          field="earlyGameNotes"
         />
         <textarea
           className="matchup-textarea"
@@ -423,68 +396,7 @@ export default function MatchupPage({
           onChange={(event) => setEarlyGameNotes(event.target.value)}
           placeholder="Write your early game notes here..."
         />
-        <div className="notes-save-row">
-          <button
-            type="button"
-            className="secondary-button small-button"
-            onClick={() => saveMatchupNotes({ earlyGameNotes }, 'earlyGameNotes')}
-          >
-            Save Early Game Notes
-          </button>
-          {renderSavedMessage('earlyGameNotes')}
-        </div>
-      </article>
-
-      <article className="panel-card note-block">
-        <h3>Level 6</h3>
-        <QuickNoteButtons
-          section={quickNoteSections.six}
-          currentValue={level6Notes}
-          setValue={setLevel6Notes}
-          field="level6Notes"
-        />
-        <textarea
-          className="matchup-textarea"
-          value={level6Notes}
-          onChange={(event) => setLevel6Notes(event.target.value)}
-          placeholder="Write your level 6 notes here..."
-        />
-        <div className="notes-save-row">
-          <button
-            type="button"
-            className="secondary-button small-button"
-            onClick={() => saveMatchupNotes({ level6Notes }, 'level6Notes')}
-          >
-            Save Level 6 Notes
-          </button>
-          {renderSavedMessage('level6Notes')}
-        </div>
-      </article>
-
-      <article className="panel-card note-block">
-        <h3>Level 11</h3>
-        <QuickNoteButtons
-          section={quickNoteSections.eleven}
-          currentValue={level11Notes}
-          setValue={setLevel11Notes}
-          field="level11Notes"
-        />
-        <textarea
-          className="matchup-textarea"
-          value={level11Notes}
-          onChange={(event) => setLevel11Notes(event.target.value)}
-          placeholder="Write your level 11 notes here..."
-        />
-        <div className="notes-save-row">
-          <button
-            type="button"
-            className="secondary-button small-button"
-            onClick={() => saveMatchupNotes({ level11Notes }, 'level11Notes')}
-          >
-            Save Level 11 Notes
-          </button>
-          {renderSavedMessage('level11Notes')}
-        </div>
+        <div className="notes-save-row">{renderSavedMessage('all')}</div>
       </article>
 
       <article className="panel-card note-block">
@@ -493,7 +405,6 @@ export default function MatchupPage({
           section={quickNoteSections.late}
           currentValue={lateGameNotes}
           setValue={setLateGameNotes}
-          field="lateGameNotes"
         />
         <textarea
           className="matchup-textarea"
@@ -501,16 +412,7 @@ export default function MatchupPage({
           onChange={(event) => setLateGameNotes(event.target.value)}
           placeholder="Write your late game notes here..."
         />
-        <div className="notes-save-row">
-          <button
-            type="button"
-            className="secondary-button small-button"
-            onClick={() => saveMatchupNotes({ lateGameNotes }, 'lateGameNotes')}
-          >
-            Save Late Game Notes
-          </button>
-          {renderSavedMessage('lateGameNotes')}
-        </div>
+        <div className="notes-save-row">{renderSavedMessage('all')}</div>
       </article>
 
       {renderTopLaneRulesCard()}

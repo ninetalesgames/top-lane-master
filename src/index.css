@@ -919,7 +919,22 @@ button {
   outline: 2px solid rgba(124, 92, 255, 0.8);
   outline-offset: 2px;
 }
+/* Opponent page purple theme */
+.opponent-page {
+  background: radial-gradient(circle at top, #1a1028 0%, #0a0d14 60%);
+}
 
+.opponent-page .panel-card {
+  border-color: rgba(140, 80, 255, 0.25);
+}
+
+.opponent-page .section-label {
+  color: #a78bfa;
+}
+
+.opponent-page .page-title {
+  color: #c4b5fd;
+}
 @media (max-width: 1000px) {
   .champion-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
