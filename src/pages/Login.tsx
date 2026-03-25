@@ -6,7 +6,7 @@ type LoginPageProps = {
   userEmail: string | null;
   authBusy: boolean;
   onBack: () => void;
-  onGoogleSignIn: () => void;
+  onGoogleSignIn: () => Promise<void> | void;
   onEmailSignUp: (email: string, password: string) => void;
   onEmailLogIn: (email: string, password: string) => void;
   onSignOut: () => void;
@@ -38,6 +38,15 @@ export default function LoginPage({
       onEmailSignUp(cleanEmail, cleanPassword);
     } else {
       onEmailLogIn(cleanEmail, cleanPassword);
+    }
+  };
+
+  const handleGoogleClick = async () => {
+    try {
+      await onGoogleSignIn();
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      alert(`${error?.code || 'unknown-error'} - ${error?.message || 'Google sign-in failed.'}`);
     }
   };
 
@@ -82,7 +91,7 @@ export default function LoginPage({
             <button
               type="button"
               className="primary-button"
-              onClick={onGoogleSignIn}
+              onClick={handleGoogleClick}
               disabled={authBusy}
             >
               Continue with Google

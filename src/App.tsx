@@ -92,15 +92,17 @@ export default function App() {
       setAuthBusy(true);
 
       if (auth.currentUser?.isAnonymous) {
-        await linkWithPopup(auth.currentUser, googleProvider);
+        const result = await linkWithPopup(auth.currentUser, googleProvider);
+        console.log('Google link success:', result.user);
       } else {
-        await signInWithPopup(auth, googleProvider);
+        const result = await signInWithPopup(auth, googleProvider);
+        console.log('Google sign-in success:', result.user);
       }
 
       setCurrentPage('account');
     } catch (error) {
       console.error('Google sign-in failed:', error);
-      alert('Google sign-in failed. Please try again.');
+      throw error;
     } finally {
       setAuthBusy(false);
     }
@@ -213,17 +215,17 @@ export default function App() {
       )}
 
       {currentPage === 'champion-select' && (
-  <ChampionSelectPage
-    selectedChampion={selectedChampion}
-    mastery={mastery}
-    onSelectChampion={(champion) => {
-      setSelectedChampion(champion);
-      setSelectedOpponent(null);
-    }}
-    onBack={goToLanding}
-    onContinue={goToOpponentSelect}
-  />
-)}
+        <ChampionSelectPage
+          selectedChampion={selectedChampion}
+          mastery={mastery}
+          onSelectChampion={(champion) => {
+            setSelectedChampion(champion);
+            setSelectedOpponent(null);
+          }}
+          onBack={goToLanding}
+          onContinue={goToOpponentSelect}
+        />
+      )}
 
       {currentPage === 'opponent-select' && (
         <OpponentSelectPage
