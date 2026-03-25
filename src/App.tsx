@@ -88,25 +88,34 @@ export default function App() {
   const goToMatchupPage = () => setCurrentPage('matchup');
 
   const handleGoogleSignIn = async () => {
-    try {
-      setAuthBusy(true);
+  try {
+    setAuthBusy(true);
 
-      if (auth.currentUser?.isAnonymous) {
+    if (auth.currentUser?.isAnonymous) {
+      try {
         const result = await linkWithPopup(auth.currentUser, googleProvider);
         console.log('Google link success:', result.user);
-      } else {
-        const result = await signInWithPopup(auth, googleProvider);
-        console.log('Google sign-in success:', result.user);
+      } catch (error: any) {
+        if (error.code === 'auth/credential-already-in-use') {
+          const result = await signInWithPopup(auth, googleProvider);
+          console.log('Signed into existing Google account:', result.user);
+        } else {
+          throw error;
+        }
       }
-
-      setCurrentPage('account');
-    } catch (error) {
-      console.error('Google sign-in failed:', error);
-      throw error;
-    } finally {
-      setAuthBusy(false);
+    } else {
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log('Google sign-in success:', result.user);
     }
-  };
+
+    setCurrentPage('account');
+  } catch (error) {
+    console.error('Google sign-in failed:', error);
+    throw error;
+  } finally {
+    setAuthBusy(false);
+  }
+};
 
   const handleEmailSignUp = async (email: string, password: string) => {
     try {
