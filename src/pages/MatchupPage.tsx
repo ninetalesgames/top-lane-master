@@ -136,6 +136,10 @@ const hasNote = (currentValue: string, note: string) => {
   return lines.some((line) => line.toLowerCase() === note.toLowerCase());
 };
 
+const hasRealNotes = (earlyNotes: string, lateNotes: string) => {
+  return normalizeLines(earlyNotes).length > 0 || normalizeLines(lateNotes).length > 0;
+};
+
 const renderNoteList = (value: string) => {
   const lines = normalizeLines(value);
 
@@ -179,12 +183,15 @@ export default function MatchupPage({
   const matchupStorageKey = `matchup_notes_${championKey}_${opponentKey}`;
 
   useEffect(() => {
+    hasLoadedInitialData.current = false;
+
     try {
       const savedData = localStorage.getItem(matchupStorageKey);
 
       if (!savedData) {
         setEarlyGameNotes(defaultNotes.earlyGameNotes);
         setLateGameNotes(defaultNotes.lateGameNotes);
+        setMode('update');
         hasLoadedInitialData.current = true;
         return;
       }
@@ -206,13 +213,18 @@ export default function MatchupPage({
         .join('\n')
         .trim();
 
-      setEarlyGameNotes(mergedEarlyNotes || defaultNotes.earlyGameNotes);
-      setLateGameNotes(mergedLateNotes || defaultNotes.lateGameNotes);
+      const finalEarlyNotes = mergedEarlyNotes || defaultNotes.earlyGameNotes;
+      const finalLateNotes = mergedLateNotes || defaultNotes.lateGameNotes;
+
+      setEarlyGameNotes(finalEarlyNotes);
+      setLateGameNotes(finalLateNotes);
+      setMode(hasRealNotes(finalEarlyNotes, finalLateNotes) ? 'review' : 'update');
       hasLoadedInitialData.current = true;
     } catch (error) {
       console.error('Failed to load matchup notes from localStorage:', error);
       setEarlyGameNotes(defaultNotes.earlyGameNotes);
       setLateGameNotes(defaultNotes.lateGameNotes);
+      setMode('update');
       hasLoadedInitialData.current = true;
     }
   }, [matchupStorageKey]);

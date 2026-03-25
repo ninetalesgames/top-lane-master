@@ -13,13 +13,14 @@ import {
 } from 'firebase/auth';
 import './index.css';
 import { auth, googleProvider } from './firebase';
+import { topLaneChampions, type Champion } from './data/topLaneChampions';
+import { calculateMastery, type ChampionMastery } from './utils/mastery';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/Login';
 import AccountPage from './pages/Account';
 import ChampionSelectPage from './pages/ChampionSelectPage';
 import OpponentSelectPage from './pages/OpponentSelectPage';
 import MatchupPage from './pages/MatchupPage';
-import type { Champion } from './data/topLaneChampions';
 
 type AppPage =
   | 'landing'
@@ -39,6 +40,20 @@ export default function App() {
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authBusy, setAuthBusy] = useState(false);
+
+  const [mastery, setMastery] = useState<ChampionMastery[]>([]);
+
+  const refreshMastery = () => {
+    const championKeys = topLaneChampions.map((champion) =>
+      champion.name.toLowerCase().replace(/\s+/g, '_')
+    );
+
+    setMastery(calculateMastery(championKeys));
+  };
+
+  useEffect(() => {
+    refreshMastery();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -61,7 +76,11 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const goToLanding = () => setCurrentPage('landing');
+  const goToLanding = () => {
+    refreshMastery();
+    setCurrentPage('landing');
+  };
+
   const goToLogin = () => setCurrentPage('login');
   const goToAccount = () => setCurrentPage('account');
   const goToChampionSelect = () => setCurrentPage('champion-select');
@@ -166,6 +185,7 @@ export default function App() {
           userEmail={authUser?.email ?? null}
           onSignOut={handleSignOut}
           authBusy={authBusy}
+          mastery={mastery}
         />
       )}
 
@@ -193,16 +213,17 @@ export default function App() {
       )}
 
       {currentPage === 'champion-select' && (
-        <ChampionSelectPage
-          selectedChampion={selectedChampion}
-          onSelectChampion={(champion) => {
-            setSelectedChampion(champion);
-            setSelectedOpponent(null);
-          }}
-          onBack={goToLanding}
-          onContinue={goToOpponentSelect}
-        />
-      )}
+  <ChampionSelectPage
+    selectedChampion={selectedChampion}
+    mastery={mastery}
+    onSelectChampion={(champion) => {
+      setSelectedChampion(champion);
+      setSelectedOpponent(null);
+    }}
+    onBack={goToLanding}
+    onContinue={goToOpponentSelect}
+  />
+)}
 
       {currentPage === 'opponent-select' && (
         <OpponentSelectPage
@@ -218,7 +239,10 @@ export default function App() {
         <MatchupPage
           selectedChampion={selectedChampion}
           selectedOpponent={selectedOpponent}
-          onBack={goToOpponentSelect}
+          onBack={() => {
+            refreshMastery();
+            goToOpponentSelect();
+          }}
         />
       )}
     </div>

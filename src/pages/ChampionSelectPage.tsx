@@ -1,22 +1,52 @@
 import { useMemo, useState } from 'react';
 import type { SelectedChampion } from '../App';
 import { topLaneChampions, type Champion } from '../data/topLaneChampions';
+import type { ChampionMastery } from '../utils/mastery';
 import logo from '../assets/logo.png';
 
 type ChampionSelectPageProps = {
   selectedChampion: SelectedChampion;
+  mastery: ChampionMastery[];
   onSelectChampion: (champion: Champion) => void;
   onBack: () => void;
   onContinue: () => void;
 };
 
+const getRankClassName = (rank: string) => {
+  switch (rank) {
+    case 'Challenger':
+      return 'mastery-rank-challenger';
+    case 'Master':
+      return 'mastery-rank-master';
+    case 'Diamond':
+      return 'mastery-rank-diamond';
+    case 'Emerald':
+      return 'mastery-rank-emerald';
+    case 'Platinum':
+      return 'mastery-rank-platinum';
+    case 'Gold':
+      return 'mastery-rank-gold';
+    case 'Silver':
+      return 'mastery-rank-silver';
+    case 'Bronze':
+      return 'mastery-rank-bronze';
+    default:
+      return 'mastery-rank-iron';
+  }
+};
+
 export default function ChampionSelectPage({
   selectedChampion,
+  mastery,
   onSelectChampion,
   onBack,
   onContinue
 }: ChampionSelectPageProps) {
   const [search, setSearch] = useState('');
+
+  const masteryMap = useMemo(() => {
+    return new Map(mastery.map((item) => [item.champion, item]));
+  }, [mastery]);
 
   const filteredChampions = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -98,6 +128,8 @@ export default function ChampionSelectPage({
           <div className="champion-grid">
             {filteredChampions.map((champion) => {
               const isSelected = selectedChampion?.id === champion.id;
+              const championKey = champion.name.toLowerCase().replace(/\s+/g, '_');
+              const championMastery = masteryMap.get(championKey);
 
               return (
                 <button
@@ -113,7 +145,26 @@ export default function ChampionSelectPage({
                       className="champion-avatar-image"
                     />
                   </div>
+
                   <span className="champion-name">{champion.name}</span>
+
+                  {championMastery && championMastery.count > 0 ? (
+                    <div className="champion-mastery-block">
+                      <span
+                        className={`champion-mastery-rank ${getRankClassName(championMastery.rank)}`}
+                      >
+                        {championMastery.rank}
+                      </span>
+                      <span className="champion-mastery-percent">
+                        {championMastery.percentage}% mastery
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="champion-mastery-block">
+                      <span className="champion-mastery-rank mastery-rank-iron">Unranked</span>
+                      <span className="champion-mastery-percent">0% mastery</span>
+                    </div>
+                  )}
                 </button>
               );
             })}

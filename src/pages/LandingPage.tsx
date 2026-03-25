@@ -1,4 +1,6 @@
 import logo from '../assets/logo.png';
+import { topLaneChampions } from '../data/topLaneChampions';
+import type { ChampionMastery } from '../utils/mastery';
 
 type LandingPageProps = {
   onEnter: () => void;
@@ -6,6 +8,46 @@ type LandingPageProps = {
   userEmail: string | null;
   onSignOut: () => void;
   authBusy: boolean;
+  mastery: ChampionMastery[];
+};
+const getRankClassName = (rank: string) => {
+  switch (rank) {
+    case 'Challenger':
+      return 'mastery-rank-challenger';
+    case 'Master':
+      return 'mastery-rank-master';
+    case 'Diamond':
+      return 'mastery-rank-diamond';
+    case 'Emerald':
+      return 'mastery-rank-emerald';
+    case 'Platinum':
+      return 'mastery-rank-platinum';
+    case 'Gold':
+      return 'mastery-rank-gold';
+    case 'Silver':
+      return 'mastery-rank-silver';
+    case 'Bronze':
+      return 'mastery-rank-bronze';
+    default:
+      return 'mastery-rank-iron';
+  }
+};
+const getChampionDisplayData = (championKey: string) => {
+  const match = topLaneChampions.find(
+    (champion) => champion.name.toLowerCase().replace(/\s+/g, '_') === championKey
+  );
+
+  if (!match) {
+    return {
+      name: championKey.replace(/_/g, ' '),
+      image: null
+    };
+  }
+
+  return {
+    name: match.name,
+    image: match.image
+  };
 };
 
 export default function LandingPage({
@@ -13,8 +55,11 @@ export default function LandingPage({
   onOpenLogin,
   userEmail,
   onSignOut,
-  authBusy
+  authBusy,
+  mastery
 }: LandingPageProps) {
+  const topMastery = mastery.filter((item) => item.count > 0).slice(0, 3);
+
   return (
     <>
       <header className="topbar">
@@ -88,6 +133,84 @@ export default function LandingPage({
           </div>
         </section>
       </main>
+
+      {topMastery.length > 0 && (
+        <section className="info-section">
+          <div className="info-grid">
+            <article className="info-card" style={{ gridColumn: '1 / -1' }}>
+              <h2>Your Top Mastery Champions</h2>
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                  marginTop: '1rem'
+                }}
+              >
+                {topMastery.map((item) => {
+                  const champion = getChampionDisplayData(item.champion);
+
+                  return (
+                    <div
+                      key={item.champion}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.85rem',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '14px',
+                        padding: '0.8rem 1rem',
+                        minWidth: '220px'
+                      }}
+                    >
+                      {champion.image && (
+                        <img
+                          src={`https://ddragon.leagueoflegends.com/cdn/15.11.1/img/champion/${champion.image}.png`}
+                          alt={champion.name}
+                          style={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: '10px'
+                          }}
+                        />
+                      )}
+
+                      <div>
+                        <div style={{ fontWeight: 700, marginBottom: '0.15rem' }}>
+                          {champion.name}
+                        </div>
+                        <div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    marginTop: '0.2rem'
+  }}
+>
+  <span
+    className={`champion-mastery-rank ${getRankClassName(item.rank)}`}
+  >
+    {item.rank}
+  </span>
+
+  <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>
+    {item.percentage}%
+  </span>
+</div>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.72 }}>
+                          {item.count}/{item.total} matchups saved
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
+          </div>
+        </section>
+      )}
 
       <section className="info-section">
         <div className="info-grid">
