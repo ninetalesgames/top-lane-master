@@ -9,7 +9,9 @@ type LandingPageProps = {
   onSignOut: () => void;
   authBusy: boolean;
   mastery: ChampionMastery[];
+  onOpenChampionMastery: (championKey: string) => void;
 };
+
 const getRankClassName = (rank: string) => {
   switch (rank) {
     case 'Challenger':
@@ -32,6 +34,7 @@ const getRankClassName = (rank: string) => {
       return 'mastery-rank-iron';
   }
 };
+
 const getChampionDisplayData = (championKey: string) => {
   const match = topLaneChampions.find(
     (champion) => champion.name.toLowerCase().replace(/\s+/g, '_') === championKey
@@ -56,7 +59,8 @@ export default function LandingPage({
   userEmail,
   onSignOut,
   authBusy,
-  mastery
+  mastery,
+  onOpenChampionMastery
 }: LandingPageProps) {
   const topMastery = mastery.filter((item) => item.count > 0).slice(0, 3);
 
@@ -152,8 +156,10 @@ export default function LandingPage({
                   const champion = getChampionDisplayData(item.champion);
 
                   return (
-                    <div
+                    <button
                       key={item.champion}
+                      type="button"
+                      onClick={() => onOpenChampionMastery(item.champion)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -162,7 +168,21 @@ export default function LandingPage({
                         border: '1px solid rgba(255,255,255,0.08)',
                         borderRadius: '14px',
                         padding: '0.8rem 1rem',
-                        minWidth: '220px'
+                        minWidth: '220px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        color: 'inherit',
+                        transition: 'transform 0.16s ease, border-color 0.16s ease, background 0.16s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
                       }}
                     >
                       {champion.image && (
@@ -172,7 +192,8 @@ export default function LandingPage({
                           style={{
                             width: 42,
                             height: 42,
-                            borderRadius: '10px'
+                            borderRadius: '10px',
+                            flexShrink: 0
                           }}
                         />
                       )}
@@ -181,29 +202,29 @@ export default function LandingPage({
                         <div style={{ fontWeight: 700, marginBottom: '0.15rem' }}>
                           {champion.name}
                         </div>
-                        <div
-  style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.4rem',
-    marginTop: '0.2rem'
-  }}
->
-  <span
-    className={`champion-mastery-rank ${getRankClassName(item.rank)}`}
-  >
-    {item.rank}
-  </span>
 
-  <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>
-    {item.percentage}%
-  </span>
-</div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            marginTop: '0.2rem'
+                          }}
+                        >
+                          <span className={`champion-mastery-rank ${getRankClassName(item.rank)}`}>
+                            {item.rank}
+                          </span>
+
+                          <span style={{ fontSize: '0.85rem', opacity: 0.85 }}>
+                            {item.percentage}%
+                          </span>
+                        </div>
+
                         <div style={{ fontSize: '0.75rem', opacity: 0.72 }}>
                           {item.count}/{item.total} matchups saved
                         </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

@@ -21,6 +21,7 @@ import AccountPage from './pages/Account';
 import ChampionSelectPage from './pages/ChampionSelectPage';
 import OpponentSelectPage from './pages/OpponentSelectPage';
 import MatchupPage from './pages/MatchupPage';
+import ChampionPage from './pages/Champion';
 
 type AppPage =
   | 'landing'
@@ -28,7 +29,8 @@ type AppPage =
   | 'account'
   | 'champion-select'
   | 'opponent-select'
-  | 'matchup';
+  | 'matchup'
+  | 'champion';
 
 export type SelectedChampion = Champion | null;
 
@@ -36,6 +38,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>('landing');
   const [selectedChampion, setSelectedChampion] = useState<SelectedChampion>(null);
   const [selectedOpponent, setSelectedOpponent] = useState<SelectedChampion>(null);
+  const [selectedMasteryChampion, setSelectedMasteryChampion] = useState<string | null>(null);
 
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -86,36 +89,37 @@ export default function App() {
   const goToChampionSelect = () => setCurrentPage('champion-select');
   const goToOpponentSelect = () => setCurrentPage('opponent-select');
   const goToMatchupPage = () => setCurrentPage('matchup');
+  const goToChampionPage = () => setCurrentPage('champion');
 
   const handleGoogleSignIn = async () => {
-  try {
-    setAuthBusy(true);
+    try {
+      setAuthBusy(true);
 
-    if (auth.currentUser?.isAnonymous) {
-      try {
-        const result = await linkWithPopup(auth.currentUser, googleProvider);
-        console.log('Google link success:', result.user);
-      } catch (error: any) {
-        if (error.code === 'auth/credential-already-in-use') {
-          const result = await signInWithPopup(auth, googleProvider);
-          console.log('Signed into existing Google account:', result.user);
-        } else {
-          throw error;
+      if (auth.currentUser?.isAnonymous) {
+        try {
+          const result = await linkWithPopup(auth.currentUser, googleProvider);
+          console.log('Google link success:', result.user);
+        } catch (error: any) {
+          if (error.code === 'auth/credential-already-in-use') {
+            const result = await signInWithPopup(auth, googleProvider);
+            console.log('Signed into existing Google account:', result.user);
+          } else {
+            throw error;
+          }
         }
+      } else {
+        const result = await signInWithPopup(auth, googleProvider);
+        console.log('Google sign-in success:', result.user);
       }
-    } else {
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log('Google sign-in success:', result.user);
-    }
 
-    setCurrentPage('account');
-  } catch (error) {
-    console.error('Google sign-in failed:', error);
-    throw error;
-  } finally {
-    setAuthBusy(false);
-  }
-};
+      setCurrentPage('account');
+    } catch (error) {
+      console.error('Google sign-in failed:', error);
+      throw error;
+    } finally {
+      setAuthBusy(false);
+    }
+  };
 
   const handleEmailSignUp = async (email: string, password: string) => {
     try {
@@ -197,6 +201,10 @@ export default function App() {
           onSignOut={handleSignOut}
           authBusy={authBusy}
           mastery={mastery}
+          onOpenChampionMastery={(championKey) => {
+            setSelectedMasteryChampion(championKey);
+            goToChampionPage();
+          }}
         />
       )}
 
@@ -220,6 +228,32 @@ export default function App() {
           authBusy={authBusy}
           onBack={goToLanding}
           onSignOut={handleSignOut}
+        />
+      )}
+
+      {currentPage === 'champion' && (
+        <ChampionPage
+          championKey={selectedMasteryChampion}
+          mastery={mastery}
+          onBack={goToLanding}
+          onOpenMatchup={(opponentKey) => {
+            const selected = topLaneChampions.find(
+              (champion) =>
+                champion.name.toLowerCase().replace(/\s+/g, '_') === selectedMasteryChampion
+            );
+
+            const opponent = topLaneChampions.find(
+              (champion) => champion.name.toLowerCase().replace(/\s+/g, '_') === opponentKey
+            );
+
+            if (!selected || !opponent) {
+              return;
+            }
+
+            setSelectedChampion(selected);
+            setSelectedOpponent(opponent);
+            goToMatchupPage();
+          }}
         />
       )}
 
@@ -252,7 +286,11 @@ export default function App() {
           selectedOpponent={selectedOpponent}
           onBack={() => {
             refreshMastery();
-            goToOpponentSelect();
+            if (selectedMasteryChampion) {
+              goToChampionPage();
+            } else {
+              goToOpponentSelect();
+            }
           }}
         />
       )}
